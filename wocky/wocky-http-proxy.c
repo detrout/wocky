@@ -46,7 +46,7 @@ G_DEFINE_TYPE_WITH_CODE (WockyHttpProxy, wocky_http_proxy, G_TYPE_OBJECT,
       g_io_extension_point_register (G_PROXY_EXTENSION_POINT_NAME),
       G_TYPE_PROXY);
     g_io_extension_point_implement (G_PROXY_EXTENSION_POINT_NAME,
-      g_define_type_id, "http", 0))
+      g_define_type_id, "http", 10))
 
 static void
 wocky_http_proxy_init (WockyHttpProxy *proxy)
