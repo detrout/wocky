@@ -48,6 +48,7 @@
 #include "wocky-utils.h"
 #include "wocky-namespaces.h"
 #include "wocky-contact-factory.h"
+#include "wocky-sm.h"
 
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PORTER
 #include "wocky-debug-internal.h"
@@ -107,6 +108,8 @@ struct _WockyC2SPorterPrivate
   GQueue queueable_stanza_patterns;
 
   WockyXmppConnection *connection;
+
+  WockySM *sm;
 };
 
 typedef struct
@@ -351,6 +354,8 @@ wocky_c2s_porter_init (WockyC2SPorter *self)
 
   priv->iq_reply_handlers = g_hash_table_new_full (g_str_hash, g_str_equal,
       NULL, (GDestroyNotify) stanza_iq_handler_free);
+
+  priv->sm = NULL;
 }
 
 static void wocky_c2s_porter_dispose (GObject *object);
@@ -557,6 +562,12 @@ wocky_c2s_porter_dispose (GObject *object)
 
   if (G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->dispose (object);
+
+  if (priv->sm)
+    {
+      g_object_unref (priv->sm);
+      priv->sm = NULL;
+    }
 }
 
 void
@@ -766,6 +777,15 @@ wocky_c2s_porter_send_async (WockyPorter *porter,
     {
       elem->cancelled_sig_id = g_cancellable_connect (cancellable,
           G_CALLBACK (send_cancelled_cb), elem, NULL);
+    }
+
+  if (priv->sm)
+    {
+      if ((!wocky_stanza_has_type (stanza, WOCKY_STANZA_TYPE_SM_R))
+          && (!wocky_stanza_has_type (stanza, WOCKY_STANZA_TYPE_SM_A)))
+        {
+          wocky_sm_request_for_stanza (priv->sm, stanza);
+        }
     }
 }
 
@@ -1235,6 +1255,16 @@ remote_connection_closed (WockyC2SPorter *self,
       priv->receive_cancellable = NULL;
     }
 
+  if (self->priv->sm)
+    //check for unacked sent stanzas
+    if (wocky_sm_is_unacked_stanza (self->priv->sm) == TRUE)
+      {
+        g_warning ("Connection closed with unacked stanzas");
+        //We are missing a real handler for unacked sent stanzas:
+        //- feedback to the gui
+        //- queue for resending at the next connection
+      }
+
   g_object_unref (self);
 }
 
@@ -1387,6 +1417,17 @@ wocky_c2s_porter_start (WockyPorter *porter)
 
   priv->receive_cancellable = g_cancellable_new ();
 
+  //Connection property is now set, check for enabled stream management
+  if (wocky_xmpp_connection_get_sm_enabled (priv->connection))
+    {
+      priv->sm = wocky_sm_new (WOCKY_C2S_PORTER (self));
+      DEBUG ("c2s_porter: Stream Management enabled");
+    }
+  else
+    {
+      DEBUG ("c2s_porter: Stream Management NOT enabled");
+    }
+
   receive_stanza (self);
 }
 
@@ -1480,6 +1521,20 @@ wocky_c2s_porter_close_async (WockyPorter *porter,
           "A force close operation is pending");
       return;
     }
+
+  if (priv->sm)
+  {
+    //deliberatly send one last ack stanza, even if not requested
+    wocky_sm_send_a ((WockyPorter *) self, wocky_xmpp_connection_get_stanza_recv_count (priv->connection));
+    //check for unsent stanzas
+    if (wocky_sm_is_unacked_stanza (self->priv->sm) == TRUE)
+      {
+        g_warning ("Connection closed with unacked stanzas");
+        //We are missing a real handler for unacked sent stanzas:
+        //- feedback to the gui
+        //- queue for resending at the next connection
+      }
+  }
 
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_c2s_porter_close_async);
@@ -2273,4 +2328,21 @@ wocky_porter_iface_init (gpointer g_iface,
 
   iface->force_close_async = wocky_c2s_porter_force_close_async;
   iface->force_close_finish = wocky_c2s_porter_force_close_finish;
+}
+
+WockyStanza *
+wocky_c2s_porter_pop_unacked_stanzas (WockyC2SPorter *porter)
+{
+  WockyC2SPorterPrivate *priv = porter->priv;
+
+  if (priv->sm)
+    {
+      g_warning ("wocky_sm_pop_unacked_stanza");
+      return wocky_sm_pop_unacked_stanza (priv->sm);
+    }
+  else
+    {
+      g_warning ("wocky_sm_pop_unacked_stanza: sm == NULL");
+      return NULL;
+    }
 }

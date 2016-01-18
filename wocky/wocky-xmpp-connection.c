@@ -93,6 +93,8 @@ struct _WockyXmppConnectionPrivate
   GSimpleAsyncResult *force_close_result;
 
   guint last_id;
+
+  gboolean sm_enabled;
 };
 
 /**
@@ -124,6 +126,8 @@ wocky_xmpp_connection_init (WockyXmppConnection *self)
 
   priv->writer = wocky_xmpp_writer_new ();
   priv->reader = wocky_xmpp_reader_new ();
+
+  priv->sm_enabled = FALSE;
 }
 
 static void wocky_xmpp_connection_dispose (GObject *object);
@@ -1230,4 +1234,24 @@ wocky_xmpp_connection_force_close_finish (
     G_OBJECT (connection), wocky_xmpp_connection_force_close_async), FALSE);
 
   return TRUE;
+}
+guint
+wocky_xmpp_connection_get_stanza_recv_count (WockyXmppConnection *connection)
+{
+  return wocky_xmpp_reader_get_recv_count (connection->priv->reader);
+}
+void
+wocky_xmpp_connection_set_stanza_recv_count (WockyXmppConnection *connection, guint count)
+{
+  wocky_xmpp_reader_set_recv_count (connection->priv->reader, count);
+}
+gboolean
+wocky_xmpp_connection_get_sm_enabled (WockyXmppConnection *connection)
+{
+  return connection->priv->sm_enabled;
+}
+void
+wocky_xmpp_connection_set_sm_enabled (WockyXmppConnection *connection, gboolean sm)
+{
+  connection->priv->sm_enabled = sm;
 }
