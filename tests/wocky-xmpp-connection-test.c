@@ -37,6 +37,33 @@ test_instantiation (void)
   g_object_unref (stream);
 }
 
+static void
+test_sm_instantiation (void)
+{
+  WockyXmppConnection *connection;
+  WockyTestStream *stream;
+  guint pending_messages;
+
+  stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
+  connection = wocky_xmpp_connection_new (stream->stream0);
+
+  g_assert (connection != NULL);
+
+  g_assert_false (wocky_xmpp_connection_get_sm_enabled (connection));
+  g_assert_cmpint (wocky_xmpp_connection_get_stanza_recv_count (connection), ==, 0);
+
+  wocky_xmpp_connection_set_sm_enabled (connection, TRUE);
+  g_assert (wocky_xmpp_connection_get_sm_enabled (connection));
+  g_assert (wocky_xmpp_connection_get_stanza_recv_count (connection) == 0);
+
+  pending_messages = g_test_rand_int ();
+  wocky_xmpp_connection_set_stanza_recv_count (connection, pending_messages);
+  g_assert_cmpint (wocky_xmpp_connection_get_stanza_recv_count (connection), ==, pending_messages);
+
+  g_object_unref (connection);
+  g_object_unref (stream);
+}
+
 /* Simple message test */
 static void
 stanza_received_cb (GObject *source, GAsyncResult *res, gpointer user_data)
@@ -912,6 +939,7 @@ main (int argc, char **argv)
   test_init (argc, argv);
 
   g_test_add_func ("/xmpp-connection/initiation", test_instantiation);
+  g_test_add_func ("/xmpp-connection/initiation+session-management", test_sm_instantiation);
   g_test_add_func ("/xmpp-connection/recv-simple-message",
     test_recv_simple_message);
   g_test_add_func ("/xmpp-connection/send-simple-message",
