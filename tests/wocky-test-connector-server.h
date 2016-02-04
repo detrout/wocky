@@ -114,6 +114,13 @@ typedef enum
 
 typedef enum
 {
+  STREAM_MANAGEMENT_PROBLEM_NONE = 0,
+  STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE = CONNPROBLEM(0),
+  STREAM_MANAGEMENT_PROBLEM_FAILED = CONNPROBLEM(1),
+} StreamManagementProblem;
+
+typedef enum
+{
   CERT_STANDARD,
   CERT_EXPIRED,
   CERT_NOT_YET,
@@ -133,6 +140,7 @@ typedef struct
   ServerDeath death;
   JabberProblem jabber;
   XEP77Problem xep77;
+  StreamManagementProblem sm;
 } ConnectorProblem;
 
 typedef struct _TestConnectorServer TestConnectorServer;

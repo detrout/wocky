@@ -1366,7 +1366,8 @@ test_t tests[] =
         WOCKY_CONNECTOR_ERROR_REGISTRATION_EMPTY, -1 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
-          { OK, OK, OK, OK, OK, XEP77_PROBLEM_NO_ARGS } },
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_NO_ARGS,
+            STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -1544,7 +1545,9 @@ test_t tests[] =
       NOISY,
       { S_NO_ERROR, },
       { { TLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, OK,
+            STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -1600,7 +1603,8 @@ test_t tests[] =
       { S_NO_ERROR, },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
-          { OK, OK, OK, OK, OK, XEP77_PROBLEM_CANCEL_STREAM } },
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_CANCEL_STREAM,
+            STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -1616,7 +1620,8 @@ test_t tests[] =
       { S_NO_ERROR, },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
-          { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, OK } },
+          { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, OK, OK,
+            STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -1736,7 +1741,8 @@ test_t tests[] =
       { S_NO_ERROR, },
       { { TLS, "password" },
         { SERVER_PROBLEM_NO_PROBLEM,
-          { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, OK } },
+          { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, OK, OK,
+            STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -1788,7 +1794,8 @@ test_t tests[] =
       { S_NO_ERROR, },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL,
-          { XMPP_PROBLEM_OLD_AUTH_FEATURE, OK, OK, OK, OK } },
+          { XMPP_PROBLEM_OLD_AUTH_FEATURE, OK, OK, OK, OK, OK,
+            STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -1803,7 +1810,8 @@ test_t tests[] =
       { S_NO_ERROR, },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
-          { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+          { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK,
+            OK, STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -1926,7 +1934,8 @@ test_t tests[] =
       { S_NO_ERROR, },
       { { TLS, "password" },
         { SERVER_PROBLEM_NO_PROBLEM,
-          { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+          { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK,
+            OK, STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -1982,7 +1991,7 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL,
           { XMPP_PROBLEM_OLD_AUTH_FEATURE|XMPP_PROBLEM_OLD_SSL,
-            OK, OK, OK, OK } },
+            OK, OK, OK, OK, OK, STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE } },
         { "moose", "something" },
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
@@ -3660,6 +3669,12 @@ run_test (gpointer data)
           g_assert (i == 31415);
 
           g_object_unref (tmp);
+        }
+
+      if (!(test->server_parameters.problem.conn.sm))
+        {
+          g_assert_true (wocky_xmpp_connection_get_sm_enabled (
+                            test->result.xmpp));
         }
     }
   else

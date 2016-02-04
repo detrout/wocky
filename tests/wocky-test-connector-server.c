@@ -197,6 +197,8 @@ static void handle_auth     (TestConnectorServer *self,
     WockyStanza *xml);
 static void handle_starttls (TestConnectorServer *self,
     WockyStanza *xml);
+static void handle_enable (TestConnectorServer *self,
+    WockyStanza *xml);
 
 static void
 after_auth (GObject *source,
@@ -235,6 +237,7 @@ static stanza_handler handlers[] =
   {
     HANDLER (SASL_AUTH, auth),
     HANDLER (TLS, starttls),
+    HANDLER (STREAM_MANAGEMENT, enable),
     { NULL, NULL, NULL }
   };
 
@@ -1031,6 +1034,25 @@ handle_starttls (TestConnectorServer *self,
 }
 
 static void
+handle_enable (TestConnectorServer *self,
+    WockyStanza *xml)
+{
+  TestConnectorServerPrivate *priv = self->priv;
+  WockyXmppConnection *conn = priv->conn;
+  WockyStanza *reply = NULL;
+  GAsyncReadyCallback cb = iq_sent;
+
+  DEBUG ("");
+
+  reply = wocky_stanza_new ("enabled", WOCKY_XMPP_NS_STREAM_MANAGEMENT);
+
+  server_enc_outstanding (self);
+  wocky_xmpp_connection_send_stanza_async (conn, reply, NULL, cb, self);
+  g_object_unref (reply);
+  g_object_unref (xml);
+}
+
+static void
 finished (GObject *source,
     GAsyncResult *result,
     gpointer data)
@@ -1265,6 +1287,9 @@ after_auth (GObject *source,
 
   if (!(priv->problem.connector->xmpp & XMPP_PROBLEM_CANNOT_BIND))
     wocky_node_add_child_ns (node, "bind", WOCKY_XMPP_NS_BIND);
+
+  if (!(priv->problem.connector->sm & STREAM_MANAGEMENT_PROBLEM_NOT_AVAILABLE))
+    wocky_node_add_child_ns (node, "sm", WOCKY_XMPP_NS_STREAM_MANAGEMENT);
 
   priv->state = SERVER_STATE_FEATURES_SENT;
 
